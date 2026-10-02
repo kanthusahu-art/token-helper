@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Token Helper</title>
+
+<style>
+    * {
+        box-sizing: border-box;
+        font-family: Arial, sans-serif;
+    }
+
+    body {
+        margin: 0;
+        background: #f1f5f9;
+        color: #111827;
+    }
+
+    .container {
+        max-width: 500px;
+        margin: 30px auto;
+        padding: 20px;
+    }
+
+    .card {
+        background: white;
+        padding: 22px;
+        border-radius: 15px;
+        box-shadow: 0 4px 15px rgba(0,0,0,.10);
+    }
+
+    h1 {
+        text-align: center;
+        margin-top: 0;
+    }
+
+    label {
+        display: block;
+        margin-top: 14px;
+        font-weight: bold;
+    }
+
+    input, select, button {
+        width: 100%;
+        padding: 12px;
+        margin-top: 6px;
+        border-radius: 8px;
+        border: 1px solid #cbd5e1;
+        font-size: 16px;
+    }
+
+    button {
+        margin-top: 20px;
+        background: #166534;
+        color: white;
+        border: none;
+        cursor: pointer;
+    }
+
+    button:hover {
+        background: #14532d;
+    }
+
+    .info {
+        margin-top: 20px;
+        padding: 15px;
+        background: #f0fdf4;
+        border-radius: 10px;
+        display: none;
+    }
+
+    .timer {
+        text-align: center;
+        font-size: 22px;
+        font-weight: bold;
+        margin-top: 15px;
+    }
+
+    .warning {
+        font-size: 13px;
+        color: #64748b;
+        margin-top: 15px;
+    }
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<div class="card">
+
+<h1>🌾 Token Helper</h1>
+
+<label>किसान का नाम</label>
+<input type="text" id="name" placeholder="अपना नाम">
+
+<label>किसान कोड</label>
+<input type="text" id="farmerCode" placeholder="किसान कोड">
+
+<label>समिति</label>
+<input type="text" id="committee" placeholder="समिति का नाम">
+
+<label>धान की मात्रा (क्विंटल)</label>
+<input type="number" id="quantity" placeholder="जैसे 20">
+
+<label>टोकन की तारीख</label>
+<input type="date" id="date">
+
+<label>टोकन खुलने का समय</label>
+<input type="time" id="time">
+
+<button onclick="saveData()">💾 जानकारी सेव करें</button>
+
+<button onclick="showData()">📋 मेरी जानकारी देखें</button>
+
+<button onclick="setReminder()">🔔 Reminder लगाएँ</button>
+
+<div class="timer" id="timer"></div>
+
+<div class="info" id="info"></div>
+
+<p class="warning">
+यह helper केवल आपकी जानकारी व्यवस्थित करने और reminder के लिए है।
+Official token system की security, CAPTCHA या queue को bypass नहीं करता।
+</p>
+
+</div>
+
+</div>
+
+<script>
+
+function saveData() {
+
+    const data = {
+        name: document.getElementById("name").value,
+        farmerCode: document.getElementById("farmerCode").value,
+        committee: document.getElementById("committee").value,
+        quantity: document.getElementById("quantity").value,
+        date: document.getElementById("date").value,
+        time: document.getElementById("time").value
+    };
+
+    localStorage.setItem("tokenData", JSON.stringify(data));
+
+    alert("आपकी जानकारी इस browser में सेव हो गई है।");
+}
+
+
+function showData() {
+
+    const saved = localStorage.getItem("tokenData");
+
+    if (!saved) {
+        alert("पहले जानकारी सेव करें।");
+        return;
+    }
+
+    const data = JSON.parse(saved);
+
+    document.getElementById("info").style.display = "block";
+
+    document.getElementById("info").innerHTML = `
+        <b>नाम:</b> ${escapeHTML(data.name)}<br>
+        <b>किसान कोड:</b> ${escapeHTML(data.farmerCode)}<br>
+        <b>समिति:</b> ${escapeHTML(data.committee)}<br>
+        <b>मात्रा:</b> ${escapeHTML(data.quantity)} क्विंटल<br>
+        <b>तारीख:</b> ${escapeHTML(data.date)}<br>
+        <b>समय:</b> ${escapeHTML(data.time)}
+    `;
+}
+
+
+function escapeHTML(value) {
+
+    return String(value)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
+
+function setReminder() {
+
+    const date = document.getElementById("date").value;
+    const time = document.getElementById("time").value;
+
+    if (!date || !time) {
+        alert("पहले तारीख और समय डालें।");
+        return;
+    }
+
+    const target = new Date(date + "T" + time);
+    const now = new Date();
+
+    const difference = target - now;
+
+    if (difference <= 0) {
+        alert("यह समय बीत चुका है।");
+        return;
+    }
+
+    alert(
+        "Reminder तैयार है।\n\n" +
+        "समय: " + date + " " + time
+    );
+
+    startTimer(target);
+}
+
+
+function startTimer(target) {
+
+    const timer = document.getElementById("timer");
+
+    const interval = setInterval(function() {
+
+        const now = new Date();
+        const difference = target - now;
+
+        if (difference <= 0) {
+
+            clearInterval(interval);
+
+            timer.innerHTML = "🔔 समय हो गया!";
+
+            if (Notification.permission === "granted") {
+                new Notification("Token Helper", {
+                    body: "Token का समय हो गया है।"
+                });
+            }
+
+            return;
+        }
+
+        const hours = Math.floor(
+            difference / (1000 * 60 * 60)
+        );
+
+        const minutes = Math.floor(
+            (difference / (1000 * 60)) % 60
+        );
+
+        const seconds = Math.floor(
+            (difference / 1000) % 60
+        );
+
+        timer.innerHTML =
+            "⏳ " +
+            hours + " घंटे " +
+            minutes + " मिनट " +
+            seconds + " सेकंड";
+
+    }, 1000);
+}
+
+
+if ("Notification" in window) {
+    Notification.requestPermission();
+}
+
+</script>
+
+</body>
+</html>
